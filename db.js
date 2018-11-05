@@ -1,65 +1,64 @@
 // Though this is called db.js, right now the db is json files
 
-'use strict';
 
 /*!
  * Module dependancies
  */
-var fs = require('fs');
-var path = require('path');
-var _ = require('underscore');
-var glob = require('glob');
-var async = require('async');
-var mkdirp = require('mkdirp');
+const fs = require('fs');
+const path = require('path');
+const _ = require('underscore');
+const glob = require('glob');
+const async = require('async');
+const mkdirp = require('mkdirp');
 
 
-module.exports = function(ummon) {
-  var db = {};
+module.exports = function (ummon) {
+  const db = {};
 
   /**
    * Load tasks out of a config file. This is a mess. Sorry
    */
-  db.loadTasks = function(callback) {
-    var self = this;
-    glob(ummon.config.tasksPath + '*.json', function (err, files) {
+  db.loadTasks = function (callback) {
+    const self = this;
+    glob(`${ummon.config.tasksPath}*.json`, function (err, files) {
       if (err || !files) {
         return callback(err);
       }
 
-      ummon.log.info("Load tasks from %s", ummon.config.tasksPath);
-      async.each(files, self.loadCollectionFromFile.bind(self), function(err){
+      ummon.log.info('Load tasks from %s', ummon.config.tasksPath);
+      async.each(files, self.loadCollectionFromFile.bind(self), function (err) {
         callback(err);
       });
     });
   };
 
 
-  db.loadCollectionFromFile = function(file, callback) {
-    var self = this;
-    var config;
+  db.loadCollectionFromFile = function (file, callback) {
+    const self = this;
+    let config;
 
     try {
       config = require(path.resolve(file));
-    } catch(e) {
+    } catch (e) {
       return callback(e);
     }
 
-    var keys = Object.keys(config);
+    const keys = Object.keys(config);
 
     // Is there no 'collection' and 'name' keys? No 'tasks'? Then something is up.
     if (keys.indexOf('collection') === -1 || keys.indexOf('tasks') === -1) {
       return callback(new Error('Malformed tasks config file'));
     }
 
-    ummon.createCollectionAndTasks(config, function(err){
+    ummon.createCollectionAndTasks(config, function (err) {
       callback(err);
     });
   };
 
 
-  db.saveTasks = function(callback) {
+  db.saveTasks = function (callback) {
     if (ummon.config.tasksPath) {
-      var collections = ummon.getCollections();
+      const collections = ummon.getCollections();
 
       if (!fs.existsSync(ummon.config.tasksPath)) {
         mkdirp.sync(ummon.config.tasksPath);
@@ -67,7 +66,7 @@ module.exports = function(ummon) {
 
       // Keep track of the last save time
       ummon.lastSave = new Date().getTime();
-      ummon.log.info("Saving "+collections.length+" collection(s) to file", collections)
+      ummon.log.info(`Saving ${collections.length} collection(s) to file`, collections);
       async.each(collections, db.saveCollection, callback);
     }
   };
@@ -79,7 +78,7 @@ module.exports = function(ummon) {
    * @param  {[type]} collection [description]
    * @return {[type]}            [description]
    */
-  db.cleanCollectionMetaData = function(collection) {
+  db.cleanCollectionMetaData = function (collection) {
     // This is gross but deep clone code feels gross too
     // TODO: Steam the json to the file and modify the stream
     collection = JSON.stringify(collection);
@@ -87,26 +86,26 @@ module.exports = function(ummon) {
     for (var index = 0; index < collection.length; index++) {
       for (var task in collection[index].tasks) {
         // Clean up duplicate data we don't need for this
-        ['id', 'name', 'collection', 'recentExitCodes'].forEach(function(key){
-          delete collection[index].tasks[task][key]
+        ['id', 'name', 'collection', 'recentExitCodes'].forEach(function (key) {
+          delete collection[index].tasks[task][key];
         });
       }
-    };
+    }
 
     return collection;
   };
 
-  db.saveCollection = function(collection, callback) {
-    ummon.getTasks(collection, function(err, result){
+  db.saveCollection = function (collection, callback) {
+    ummon.getTasks(collection, function (err, result) {
       if (err) {
         return callback(err);
       }
 
       result = db.cleanCollectionMetaData(result);
 
-      var resultStringified = JSON.stringify(result[0], null, '\t');
+      const resultStringified = JSON.stringify(result[0], null, '\t');
 
-      fs.writeFile(ummon.config.tasksPath+'/'+collection+'.tasks.json', resultStringified, function (err) {
+      fs.writeFile(`${ummon.config.tasksPath}/${collection}.tasks.json`, resultStringified, function (err) {
         callback(err);
       });
     });

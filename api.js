@@ -1,45 +1,44 @@
-'use strict';
+
 
 /*!
  * Module dependancies
  */
-var fs = require('fs');
-var restify = require('restify');
-var cp = require('child_process')
-var es = require('event-stream');
-var _ = require('underscore');
-var async = require('async');
-var moment = require('moment');
-var errors = require('restify-errors');
+const fs = require('fs');
+const restify = require('restify');
+const cp = require('child_process');
+const es = require('event-stream');
+const _ = require('underscore');
+const async = require('async');
+const moment = require('moment');
+const errors = require('restify-errors');
 
 
-module.exports = function(ummon){
-  var api = {};
+module.exports = function (ummon) {
+  const api = {};
 
 
-  api.doesCollectionExist = function(req, res, next) {
-    var collection = req.params.collection
+  api.doesCollectionExist = function (req, res, next) {
+    const collection = req.params.collection;
 
     if (collection && collection in ummon.config.collections) {
       next();
     } else {
-      return next(new errors.ResourceNotFoundError('No collection of name '+collection+' found'));
+      return next(new errors.ResourceNotFoundError(`No collection of name ${collection} found`));
     }
   };
 
 
-  api.doesTaskExist = function(req, res, next) {
+  api.doesTaskExist = function (req, res, next) {
     if (!(req.params.taskid in ummon.tasks)) {
       return next(new errors.ResourceNotFoundError('Task not found! Consider broadening your search to a collection'));
-    } else {
-      next();
     }
+    next();
   };
 
   /**
    * Return the configuration object
    */
-  api.getConfig = function(req, res, next) {
+  api.getConfig = function (req, res, next) {
     res.json(200, ummon.config);
     next();
   };
@@ -51,18 +50,17 @@ module.exports = function(ummon){
    * Currently limited to only top level of config. So
    * changing log.path won't work just yet
    */
-  api.setConfig = function(req, res, next) {
-    _.each(req.query, function(value, key) {
+  api.setConfig = function (req, res, next) {
+    _.each(req.query, function (value, key) {
       // Convert strings for true and false to boolean
-      if (value == "true" || value == "false") {
-        value = (value == "true") ? true : false;
-
+      if (value == 'true' || value == 'false') {
+        value = (value == 'true');
       } else if (!isNaN(value)) {
         value = +value;
       }
 
       ummon.config[key] = value;
-    })
+    });
 
     res.json(200, ummon.config);
     next();
@@ -72,13 +70,13 @@ module.exports = function(ummon){
   /**
    * What tasks are running
    */
-  api.ps = function(req, res, next){
-    var pids = Object.keys(ummon.workers);
+  api.ps = function (req, res, next) {
+    const pids = Object.keys(ummon.workers);
 
     res.json(200, {
-      "count":pids.length,
-      "pids": pids,
-      "runs": _.pluck(ummon.workers, 'run')
+      count: pids.length,
+      pids,
+      runs: _.pluck(ummon.workers, 'run'),
     });
     next();
   };
@@ -94,13 +92,13 @@ module.exports = function(ummon){
    *     "port": 8888
    *   }
    */
-  api.getInfo = function(req, res, next) {
-    var pkg = require('./package.json');
+  api.getInfo = function (req, res, next) {
+    const pkg = require('./package.json');
     res.json(200, {
       ok: true,
       version: pkg.version,
       name: ummon.config.name,
-      port: ummon.config.port
+      port: ummon.config.port,
     });
   };
 
@@ -119,36 +117,36 @@ module.exports = function(ummon){
    *     "totalTasks":
    *   }
    */
-  api.getStatus = function(req, res, next){
-    var pids = Object.keys(ummon.workers);
+  api.getStatus = function (req, res, next) {
+    const pids = Object.keys(ummon.workers);
 
-    var workers = (_.size(ummon.workers))
-      ? _.map(ummon.workers, function(worker) {return worker.run.task.id})
+    const workers = (_.size(ummon.workers))
+      ? _.map(ummon.workers, function (worker) { return worker.run.task.id; })
       : [];
 
     res.json(200, {
-      "workers": workers,
-      "queue": ummon.queue.getPresentTaskIds(),
-      "activeTimers": Object.keys(ummon.timers),
-      "isPaused": ummon.config.pause,
-      "maxWorkers": ummon.MAX_WORKERS,
-      "collections": ummon.getCollections(),
-      "totalTasks": _.size(ummon.tasks)
+      workers,
+      queue: ummon.queue.getPresentTaskIds(),
+      activeTimers: Object.keys(ummon.timers),
+      isPaused: ummon.config.pause,
+      maxWorkers: ummon.MAX_WORKERS,
+      collections: ummon.getCollections(),
+      totalTasks: _.size(ummon.tasks),
     });
     next();
   };
 
 
-  api.getQueue = function(req, res, next) {
-    res.json(200, {"queue": ummon.queue.getPresentTaskIds()});
-  }
+  api.getQueue = function (req, res, next) {
+    res.json(200, { queue: ummon.queue.getPresentTaskIds() });
+  };
 
 
-  api.clearQueue = function(req, res, next) {
-    var task = req.params.task || false;
+  api.clearQueue = function (req, res, next) {
+    const task = req.params.task || false;
     ummon.queue.clear(task);
-    res.json(200)
-  }
+    res.json(200);
+  };
 
 
   /**
@@ -168,18 +166,17 @@ module.exports = function(ummon){
    * @param  {Function} next The callback
    * @return {[type]}        Heavily structured object. See above
    */
-  api.getTasks = function(req, res, next) {
-    var filter = req.params.collection || req.params.taskid || false;
+  api.getTasks = function (req, res, next) {
+    const filter = req.params.collection || req.params.taskid || false;
 
-    ummon.getTasks(filter, function(err, collections){
+    ummon.getTasks(filter, function (err, collections) {
       if (err) {
-        if (err.message === "There is no tasks or collections that match the provided filter") {
+        if (err.message === 'There is no tasks or collections that match the provided filter') {
           return next(new errors.ResourceNotFoundError(err.message));
-        } else {
-          return next(err);
         }
+        return next(err);
       }
-      res.json(200, { 'collections': collections } );
+      res.json(200, { collections });
       next();
     });
   };
@@ -189,20 +186,20 @@ module.exports = function(ummon){
     ummon.getTasks(req.params.collection, function (err, results) {
       if (err) return next(err);
       // Collection object should always be the only member of the results array
-      var col = results[0];
+      const col = results[0];
       // Return a simplified config
-      var config = {
+      const config = {
         enabled: col.config.enabled,
-        tasks: {}
+        tasks: {},
       };
       if (ummon.defaults[req.params.collection]) {
         config.defaults = ummon.defaults[req.params.collection];
       }
-      for (var task in col.tasks) {
+      for (const task in col.tasks) {
         config.tasks[task] = {
           enabled: col.tasks[task].enabled,
           command: col.tasks[task].command,
-          trigger: col.tasks[task].trigger
+          trigger: col.tasks[task].trigger,
         };
         if (col.tasks[task].hasOwnProperty('cwd')) {
           config.tasks[task].cwd = col.tasks[task].cwd;
@@ -214,31 +211,31 @@ module.exports = function(ummon){
   };
 
 
-  api.setCollection = function(req, res, next) {
-    var config = req.body;
+  api.setCollection = function (req, res, next) {
+    const config = req.body;
     // Modify config for feeding to createCollectionAndTasks
     // TODO Simplify stored object
     config.collection = req.params.collection;
     if (config.hasOwnProperty('enabled')) {
-      config.config = {enabled: config.enabled};
+      config.config = { enabled: config.enabled };
     }
-    ummon.updateCollectionAndTasks(config, function(err){
+    ummon.updateCollectionAndTasks(config, function (err) {
       if (err) return next(new errors.InvalidContentError(err.message));
 
-      ummon.getTasks(req.params.collection, function(err, collection){
-        res.json(200, { 'collections': collection } );
+      ummon.getTasks(req.params.collection, function (err, collection) {
+        res.json(200, { collections: collection });
         next();
-      })
+      });
     });
   };
 
 
-  api.getTask = function(req, res, next){
-    ummon.getTask(req.params.taskid, function(err, task){
+  api.getTask = function (req, res, next) {
+    ummon.getTask(req.params.taskid, function (err, task) {
       if (err) {
         return next(err);
       }
-      res.json(200, { 'task': task } );
+      res.json(200, { task });
       next();
     });
   };
@@ -251,14 +248,14 @@ module.exports = function(ummon){
    * @param {[type]}   res  [description]
    * @param {Function} next [description]
    */
-  api.setTasks = function(req, res, next) {
-    ummon.createCollectionAndTasks(req.body, function(err){
+  api.setTasks = function (req, res, next) {
+    ummon.createCollectionAndTasks(req.body, function (err) {
       if (err) return next(new errors.InvalidContentError(err.message));
 
-      ummon.getTasks(req.params.collection, function(err, collection){
-        res.json(200, { 'collections': collection } );
+      ummon.getTasks(req.params.collection, function (err, collection) {
+        res.json(200, { collections: collection });
         next();
-      })
+      });
     });
   };
 
@@ -276,47 +273,47 @@ module.exports = function(ummon){
    *        }
    *      }
    */
-  api.createTask = function(req, res, next){
-    var task = ummon.createTask(req.body, function(err, task){
+  api.createTask = function (req, res, next) {
+    const task = ummon.createTask(req.body, function (err, task) {
       if (err) {
         // Assume it's a duplicate task id error
         return next(new errors.ConflictError(err.message));
       }
 
-      res.json(200, {"message":"Task "+task.id+" successfully created", "task":task});
+      res.json(200, { message: `Task ${task.id} successfully created`, task });
       next();
     });
   };
 
 
-  api.updateTask = function(req, res, next){
-    var task = ummon.updateTask(req.params.taskid, req.body, function(err, task){
-      res.json(200, {"message":"Task "+task.id+" successfully updated", "task":task});
+  api.updateTask = function (req, res, next) {
+    const task = ummon.updateTask(req.params.taskid, req.body, function (err, task) {
+      res.json(200, { message: `Task ${task.id} successfully updated`, task });
       next();
     });
   };
 
 
-  api.deleteTask = function(req, res, next){
-    var p = req.params;
+  api.deleteTask = function (req, res, next) {
+    const p = req.params;
 
-    ummon.deleteTask(p.taskid, function(err){
+    ummon.deleteTask(p.taskid, function (err) {
       if (err) {
         return next(err);
       }
 
-      res.json(200, {"message":"Task "+p.taskid+" successfully deleted"});
+      res.json(200, { message: `Task ${p.taskid} successfully deleted` });
       next();
     });
   };
 
 
-  api.enableTask = function(req, res, next) {
-    var task = ummon.tasks[req.params.taskid];
+  api.enableTask = function (req, res, next) {
+    const task = ummon.tasks[req.params.taskid];
 
     // Don't enable a task that is in a disabled collection
     if (ummon.config.collections[task.collection].enabled === false) {
-      res.json(424, { "message":  "Cannot enabled task " + task.id + " because it's collection is disabled. Please enable collection "+task.collection} );
+      res.json(424, { message: `Cannot enabled task ${task.id} because it's collection is disabled. Please enable collection ${task.collection}` });
       return next();
     }
 
@@ -325,69 +322,69 @@ module.exports = function(ummon){
 
     ummon.emit('task.updated', task.id); // Task.updated because this effect existing tasks
 
-    res.json(200, { "message": "Task " + task.id + " enabled" });
+    res.json(200, { message: `Task ${task.id} enabled` });
     next();
-  }
+  };
 
 
-  api.disableTask = function(req, res, next) {
-    var taskid = req.params.taskid;
+  api.disableTask = function (req, res, next) {
+    const taskid = req.params.taskid;
 
     ummon.tasks[taskid].enabled = false;
     ummon.removeTaskTriggers(taskid);
 
     ummon.emit('task.updated', taskid); // Task.updated because this effect existing tasks
 
-    res.json(200, { "message": "Task " + taskid + " disabled" });
+    res.json(200, { message: `Task ${taskid} disabled` });
     next();
-  }
+  };
 
 
   // Run a task or one-off command
-  api.run = function(req, res, next) {
-    var task = req.body.task;
+  api.run = function (req, res, next) {
+    const task = req.body.task;
 
     ummon.runTask(task, function (err, run) {
-      res.json(200, { message: 'Added "' + task + '" to the queue' });
+      res.json(200, { message: `Added "${task}" to the queue` });
       next();
     });
   };
 
 
-  api.getCollectionDefaults = function(req, res, next) {
-    var collection = req.params.collection;
-    res.json(200, { "collection":  collection, "defaults": ummon.defaults[collection]} );
+  api.getCollectionDefaults = function (req, res, next) {
+    const collection = req.params.collection;
+    res.json(200, { collection, defaults: ummon.defaults[collection] });
     next();
-  }
+  };
 
 
-  api.setCollectionDefaults = function(req, res, next) {
-    var collection = req.params.collection;
+  api.setCollectionDefaults = function (req, res, next) {
+    const collection = req.params.collection;
 
-    var message = (ummon.defaults[collection])
-          ? 'Collection '+collection+' defaults successfully set'
-          : 'Collection '+collection+' created and defaults set'
+    const message = (ummon.defaults[collection])
+      ? `Collection ${collection} defaults successfully set`
+      : `Collection ${collection} created and defaults set`;
 
     ummon.defaults[collection] = req.body;
 
     ummon.emit('task.updated', collection); // Task.updated because this effect existing tasks
 
-    res.json(200, { 'message': message, "collection":  collection, "defaults": ummon.defaults[collection]} );
+    res.json(200, { message, collection, defaults: ummon.defaults[collection] });
     next();
-  }
+  };
 
 
-  api.enableCollection = function(req, res, next) {
-    var collection = req.params.collection;
-    var tasksEnabled = [];
+  api.enableCollection = function (req, res, next) {
+    const collection = req.params.collection;
+    const tasksEnabled = [];
 
     if (ummon.config.collections[collection].enabled === true) {
-      res.json(304)
+      res.json(304);
       return next();
     }
 
     ummon.config.collections[collection].enabled = true;
-    for (var task in ummon.tasks) {
+    for (const task in ummon.tasks) {
       if (ummon.tasks[task].collection === collection) {
         ummon.setupTaskTriggers(ummon.tasks[task]);
         tasksEnabled.push(task);
@@ -396,22 +393,22 @@ module.exports = function(ummon){
 
     ummon.emit('task.updated', collection); // Task.updated because this effect existing tasks
 
-    res.json(200, { "message":  "Collection " + collection + " successfully enabled", "tasksEnabled": tasksEnabled} );
+    res.json(200, { message: `Collection ${collection} successfully enabled`, tasksEnabled });
     next();
-  }
+  };
 
 
-  api.disableCollection = function(req, res, next) {
-    var collection = req.params.collection;
-    var tasksDisabled = [];
+  api.disableCollection = function (req, res, next) {
+    const collection = req.params.collection;
+    const tasksDisabled = [];
 
     if (ummon.config.collections[collection].enabled === false) {
-      res.json(304)
+      res.json(304);
       return next();
     }
 
     ummon.config.collections[collection].enabled = false;
-    for (var task in ummon.tasks) {
+    for (const task in ummon.tasks) {
       if (ummon.tasks[task].collection === collection) {
         ummon.removeTaskTriggers(task);
         tasksDisabled.push(task);
@@ -420,45 +417,46 @@ module.exports = function(ummon){
 
     ummon.emit('task.updated', collection); // Task.updated because this effect existing tasks
 
-    res.json(200, { "message":  "Collection " + collection + " successfully disabled", "tasksDisabled": tasksDisabled} );
+    res.json(200, { message: `Collection ${collection} successfully disabled`, tasksDisabled });
     next();
-  }
+  };
 
 
-  api.deleteCollection = function(req, res, next) {
-    var collection = req.params.collection;
+  api.deleteCollection = function (req, res, next) {
+    const collection = req.params.collection;
 
     delete ummon.config.collections[collection];
     delete ummon.defaults[collection];
 
-    var collectionDbPath = ummon.config.tasksPath + '/' + collection + '.tasks.json';
+    const collectionDbPath = `${ummon.config.tasksPath}/${collection}.tasks.json`;
     if (fs.existsSync(collectionDbPath)) {
-      fs.unlinkSync(collectionDbPath)
+      fs.unlinkSync(collectionDbPath);
     }
 
-    var taskIds = ummon.getTaskIds(collection+'*');
+    const taskIds = ummon.getTaskIds(`${collection}*`);
 
-    async.each(taskIds, ummon.deleteTask.bind(ummon), function(err){
+    async.each(taskIds, ummon.deleteTask.bind(ummon), function (err) {
       ummon.emit('task.deleted', collection); // Task.updated because this effect existing tasks
 
-      res.json(200, { "message":  "Collection " + collection + " successfully deleted" } );
+      res.json(200, { message: `Collection ${collection} successfully deleted` });
       next();
     });
-  }
+  };
 
 
-  api.showLog = function(req, res, next){
+  api.showLog = function (req, res, next) {
     delete req.params.lines; // Not sure why this is here but deleting it simplifies the code below
 
-    var filter = req.query.filter || false;
-    var from = req.query.from || false;
-    var to = req.query.to || false;
-    var runsOnly = (req.query.runsOnly) ? true : false;
-    var follow = (req.query.follow) ? true : false;
+    const filter = req.query.filter || false;
+    const from = req.query.from || false;
+    const to = req.query.to || false;
+    const runsOnly = !!(req.query.runsOnly);
+    const follow = !!(req.query.follow);
 
     // Figure out the filter
     if (filter) {
-      var runid = false, collection = false, taskid = false;
+      var runid = false; var collection = false; var
+        taskid = false;
       if (/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/.test(filter)) {
         runid = filter;
       } else if (filter.indexOf('.') !== -1) {
@@ -468,36 +466,36 @@ module.exports = function(ummon){
       }
     }
 
-    var d = require('domain').create();
+    const d = require('domain').create();
 
-    d.on('error', function(er) {
-      console.log(er.stack)
-    })
+    d.on('error', function (er) {
+      console.log(er.stack);
+    });
 
-    d.run(function() {
+    d.run(function () {
       es.pipeline(
-        fs.createReadStream(ummon.config.log.path, {encoding: 'utf8'}),
+        fs.createReadStream(ummon.config.log.path, { encoding: 'utf8' }),
         es.split(), // Split on new lines
         es.parse(), // JSON.parse()
 
         // Start by filtering by date
         es.map(function (data, callback) {
           if ((!from || data.time >= from) && (!to || data.time <= to)) {
-            return callback(null, data)
+            return callback(null, data);
           }
-          callback()
+          callback();
         }),
 
         // Filter on content
         es.map(function (data, callback) {
           if (runid || taskid || collection) {
-            if ((runid && runid === data.runid) ||
-              (taskid && taskid === data.taskid) ||
-              (collection && collection === data.collection)) {
-                return callback(null, data)
+            if ((runid && runid === data.runid)
+              || (taskid && taskid === data.taskid)
+              || (collection && collection === data.collection)) {
+              return callback(null, data);
             }
 
-            return callback()
+            return callback();
           }
 
           callback(null, data);
@@ -506,18 +504,17 @@ module.exports = function(ummon){
         // filter on runs only
         es.map(function (data, callback) {
           if (runsOnly) {
-            if (("run" in data)) {
-              return callback(null, data)
-            } else {
-              return callback();
+            if (('run' in data)) {
+              return callback(null, data);
             }
+            return callback();
           }
-          callback(null, data)
+          callback(null, data);
         }),
         es.stringify(), // JSON.stringify()
-        res
-      )
-    })
+        res,
+      );
+    });
 
     return next();
   };
