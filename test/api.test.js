@@ -1,4 +1,4 @@
-const test = require('tap').test;
+const { test } = require('tap');
 
 const stream = require('stream');
 
@@ -58,7 +58,7 @@ test('get server status', function (t) {
   ummon.queue.items = [{ task: { id: 321 } }];
 
   res.json = function (status, json) {
-    console.log(json.workers, json.queue);
+    // console.log(json.workers, json.queue);
     t.similar(json.workers, [123], 'workers should be an object');
     t.similar(json.queue, [321], 'queue should be an array');
     t.type(json.activeTimers, 'object', 'activeTimers should be an object');
@@ -319,14 +319,9 @@ test('Run a one-off command', function (t) {
 
 test('Return a log', function (t) {
   t.plan(1);
-  let x = 0;
   const req = { params: { collection: 'default' }, query: { lines: 5 } };
   const res = stream.PassThrough();
   const next = function () {};
-
-  res.on('data', function () {
-    x++; // This isn't incremented with empty logs ie: Travis
-  });
 
   res.on('end', function () {
     t.ok(true, 'The end event was emitted');

@@ -1,6 +1,4 @@
-
-
-const test = require('tap').test;
+const { test } = require('tap');
 
 const ummon = require('..')({ pause: true, autoSave: false, tasksPath: null });
 const worker = require('../lib/worker.js');
@@ -22,8 +20,8 @@ test('Test successfully running code with a worker', function (t) {
 
   t.type(sleep.pid, 'number', 'There is a pid that is a number');
 
-  ummon.once('worker.complete', function (run) {
-    t.equal(run.exitCode, 0, 'The task runs and returns it\'s exit code of 0');
+  ummon.once('worker.complete', function (task) {
+    t.equal(task.exitCode, 0, 'The task runs and returns it\'s exit code of 0');
     t.end();
   });
 });

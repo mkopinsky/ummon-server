@@ -1,6 +1,4 @@
-
-
-const test = require('tap').test;
+const { test } = require('tap');
 const ummon = require('..')({ pause: true, autoSave: false });
 
 // Stub in some tasks

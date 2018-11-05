@@ -1,4 +1,4 @@
-const test = require('tap').test;
+const { test } = require('tap');
 
 const fs = require('fs');
 const rimraf = require('rimraf');
@@ -31,7 +31,7 @@ test('Attempt to load collection with configuration error', function (t) {
   t.plan(1);
 
   db.loadCollectionFromFile(`${__dirname}/fixtures/error.tasks.json`, function (err) {
-    console.log(err);
+    // console.log(err);
     t.ok(err, 'There should be an error');
   });
 });

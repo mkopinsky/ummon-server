@@ -1,6 +1,4 @@
-const test = require('tap').test;
-
-const stream = require('stream');
+const { test } = require('tap');
 
 const ummon = require('../lib/ummon')({ pause: true, autoSave: false });
 const api = require('../api')(ummon);

@@ -1,6 +1,4 @@
-
-
-const test = require('tap').test;
+const { test } = require('tap');
 const async = require('async');
 
 const ummon = require('..')({ autoSave: false });

@@ -1,6 +1,4 @@
-
-
-const test = require('tap').test;
+const { test } = require('tap');
 const moment = require('moment');
 const async = require('async');
 

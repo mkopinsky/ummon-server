@@ -1,6 +1,4 @@
-
-
-const test = require('tap').test;
+const { test } = require('tap');
 
 const queue = require('../lib/queue.js');
 
