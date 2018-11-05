@@ -1,20 +1,20 @@
-var test = require("tap").test;
+const test = require('tap').test;
 
-var fs = require('fs');
-var rimraf = require('rimraf');
+const fs = require('fs');
+const rimraf = require('rimraf');
 
-var ummon = require('../lib/ummon')({pause:true, autoSave:false, tasksPath:false});
-var db = require('../db')(ummon);
+const ummon = require('../lib/ummon')({ pause: true, autoSave: false, tasksPath: false });
+const db = require('../db')(ummon);
 
 //                    Construct!
 // - - - - - - - - - - - - - - - - - - - - - - - - -
 
-test('Load collection information from a file', function(t){
+test('Load collection information from a file', function (t) {
   t.plan(11);
 
-  db.loadCollectionFromFile(__dirname+'/fixtures/florida.tasks.json', function(err){
+  db.loadCollectionFromFile(`${__dirname}/fixtures/florida.tasks.json`, function (err) {
     t.notOk(err, 'There should be no error');
-    t.equal(ummon.defaults['florida'].cwd, '/var/www/website/', 'The default settings for the florida collection are set');
+    t.equal(ummon.defaults.florida.cwd, '/var/www/website/', 'The default settings for the florida collection are set');
     t.equal(ummon.tasks['florida.task1'].command, './update-apis', 'Task1 was created and with the right command');
     t.equal(ummon.tasks['florida.task1'].trigger.time, '*/10 * * * *', 'Task1 has the right trigger');
     t.equal(ummon.tasks['florida.task2'].command, './process-data', 'Task2 was created and with the right command');
@@ -27,51 +27,51 @@ test('Load collection information from a file', function(t){
   });
 });
 
-test('Attempt to load collection with configuration error', function(t){
+test('Attempt to load collection with configuration error', function (t) {
   t.plan(1);
 
-  db.loadCollectionFromFile(__dirname+'/fixtures/error.tasks.json', function(err){
+  db.loadCollectionFromFile(`${__dirname}/fixtures/error.tasks.json`, function (err) {
     console.log(err);
     t.ok(err, 'There should be an error');
   });
 });
 
-test('Load tasks from tasks dir', function(t){
+test('Load tasks from tasks dir', function (t) {
   t.plan(7);
 
-  ummon.config.tasksPath = __dirname+'/fixtures/tasks/';
+  ummon.config.tasksPath = `${__dirname}/fixtures/tasks/`;
 
-  db.loadTasks(function(err){
+  db.loadTasks(function (err) {
     t.notOk(err, 'There should be no error');
 
     t.equal(ummon.defaults.autosample.cwd, '/var/www/website/', 'The collection defaults were properly loaded');
-    ummon.getTask('autosample.task2', function(err, task){
+    ummon.getTask('autosample.task2', function (err, task) {
       t.ok(task, 'The task flippn loaded');
-      t.equal(task.cwd,'/var/www/website/', 'The collection defaults were properly loaded');
-      t.equal(task.command,'./process-data', 'The task command is set');
+      t.equal(task.cwd, '/var/www/website/', 'The collection defaults were properly loaded');
+      t.equal(task.command, './process-data', 'The task command is set');
 
       t.ok(ummon.tasks['palace.pizza'], 'Second config file loaded and first collection loaded');
 
       // t.equal(ummon.dependencies["success"].subject('autosample.task1').references[0],'autosample.task2', 'Task dependencies were setup properly');
-      t.equal(ummon.getTaskReferences('autosample.task1')[0],'autosample.task2', 'Task dependencies were setup properly');
+      t.equal(ummon.getTaskReferences('autosample.task1')[0], 'autosample.task2', 'Task dependencies were setup properly');
     });
   });
 });
 
 
-test('Save all tasks to files', function(t){
+test('Save all tasks to files', function (t) {
   t.plan(7);
 
   // Change tasks dir so it doesn't overwrite stuff
-  ummon.config.tasksPath = __dirname+'/fixtures/saveTasks';
+  ummon.config.tasksPath = `${__dirname}/fixtures/saveTasks`;
 
-  db.saveTasks(function(err){
+  db.saveTasks(function (err) {
     t.notOk(err, 'There should be no error');
-    t.ok(fs.existsSync(__dirname+'/fixtures/saveTasks/autosample.tasks.json'), 'The autosample collection was saved to file');
-    t.ok(fs.existsSync(__dirname+'/fixtures/saveTasks/florida.tasks.json'), 'The florida collection was saved to file');
-    t.ok(fs.existsSync(__dirname+'/fixtures/saveTasks/palace.tasks.json'), 'The palace collection was saved to file');
+    t.ok(fs.existsSync(`${__dirname}/fixtures/saveTasks/autosample.tasks.json`), 'The autosample collection was saved to file');
+    t.ok(fs.existsSync(`${__dirname}/fixtures/saveTasks/florida.tasks.json`), 'The florida collection was saved to file');
+    t.ok(fs.existsSync(`${__dirname}/fixtures/saveTasks/palace.tasks.json`), 'The palace collection was saved to file');
 
-    var florida = require(__dirname+'/fixtures/saveTasks/florida.tasks.json');
+    const florida = require(`${__dirname}/fixtures/saveTasks/florida.tasks.json`);
 
     t.equal(florida.collection, 'florida', 'The collection name was saved');
     t.ok(florida.tasks.task1, 'There is a task one');
@@ -80,9 +80,9 @@ test('Save all tasks to files', function(t){
 });
 
 
-test('teardown', function(t){
-  setImmediate(function() {
-    rimraf(__dirname+'/fixtures/saveTasks', function(err) {
+test('teardown', function (t) {
+  setImmediate(function () {
+    rimraf(`${__dirname}/fixtures/saveTasks`, function (err) {
       process.exit();
     });
   });

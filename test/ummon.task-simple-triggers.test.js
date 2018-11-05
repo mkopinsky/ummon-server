@@ -1,17 +1,17 @@
-'use strict';
 
-var test = require("tap").test;
 
-var ummon = require('..')({pause:true, autoSave:false});
+const test = require('tap').test;
 
-test('Create a tasks with simplified trigger', function(t) {
+const ummon = require('..')({ pause: true, autoSave: false });
+
+test('Create a tasks with simplified trigger', function (t) {
   t.plan(8);
 
   ummon.createTask({
-    "name":"everyminute",
-    "command": "echo Hello;",
-    "trigger": "* 5 * * *"
-  }, function(err, task){
+    name: 'everyminute',
+    command: 'echo Hello;',
+    trigger: '* 5 * * *',
+  }, function (err, task) {
     t.ok(task, 'The callback returns a task');
     t.ok(ummon.tasks['ummon.everyminute'], 'There is a everyminute task');
     t.ok(ummon.tasks['ummon.everyminute'].trigger.time, 'There is a timed trigger');
@@ -19,21 +19,20 @@ test('Create a tasks with simplified trigger', function(t) {
   });
 
   ummon.createTask({
-    "name":"aftereveryminute",
-    "command": "echo Hello;",
-    "trigger": "everyminute"
-  }, function(err, task){
+    name: 'aftereveryminute',
+    command: 'echo Hello;',
+    trigger: 'everyminute',
+  }, function (err, task) {
     t.ok(task, 'The callback returns a task');
     t.ok(ummon.tasks['ummon.aftereveryminute'], 'There is a aftereveryminute task');
     t.ok(ummon.tasks['ummon.aftereveryminute'].trigger.after, 'There is a trigger');
     t.equal(ummon.getTaskReferences('ummon.everyminute')[0], 'ummon.aftereveryminute', 'aftereveryminute is dependent on everyminute');
   });
-
 });
 
 
-test('teardown', function(t){
-  setImmediate(function() {
+test('teardown', function (t) {
+  setImmediate(function () {
     process.exit();
   });
   t.end();
